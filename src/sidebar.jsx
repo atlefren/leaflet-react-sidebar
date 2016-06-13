@@ -3,7 +3,7 @@
 var React = require('react');
 var ReactDOM = require('react-dom');
 var matchMedia = require('matchmedia');
-var NativeListener = require('react-native-listener');
+var ReactCSSTransitionGroup = require('react-addons-css-transition-group');
 var _ = require('underscore');
 var L = require('leaflet');
 require('leaflet_css');
@@ -38,15 +38,64 @@ var Map = React.createClass({
         this.setState({position: pos});
     },
 
+    closeSidebar: function () {
+        this.setState({position: null});
+    },
+
     render: function () {
         var info;
         if (this.state.position) {
-            info = (<Sidebar map={this.map}><h1>test</h1><p>{this.state.position}</p></Sidebar>);
+            info = (
+                <Sidebar
+                    close={this.closeSidebar}
+                    map={this.map}>
+                        <h1>test</h1>
+                        <p>{this.state.position}</p>
+                    </Sidebar>
+            );
         }
         return (
             <div className="map">
-                {info}
+                <Sidebar
+                    visible={!!this.state.position}
+                    close={this.closeSidebar}
+                    map={this.map}>
+                    <h1>test</h1>
+                    <p>{this.state.position}</p>
+                </Sidebar>
             </div>
+        );
+    }
+});
+
+var Sidebar = React.createClass({
+
+        componentWillLeave: function (callback) {
+        console.log("leave?")
+        callback();
+    },
+
+    render: function () {
+        var sidebar;
+        if (this.props.visible) {
+            sidebar = (
+                <SidebarContent
+                    key="sidebar"
+                    map={this.props.map}
+                    close={this.props.close}>
+                    {this.props.children}
+                </SidebarContent>
+            );
+        }
+        return (
+            <ReactCSSTransitionGroup
+                transitionName="sidebar"
+                transitionAppear={true}
+                transitionAppearTimeout={500}
+                transitionEnterTimeout={500}
+                transitionLeaveTimeout={500}>
+                {sidebar}
+            </ReactCSSTransitionGroup>
         );
     }
 });
@@ -59,7 +108,16 @@ var media = {
     fullscreen: '(max-width: 768px)'
 };
 
-var Sidebar = React.createClass({
+var SidebarContent2 = React.createClass({
+    render: function () {
+        return (
+            <div className="sidebar" onClick={this.props.close}>content</div>
+        );
+    }
+});
+
+
+var SidebarContent = React.createClass({
 
     componentWillMount: function () {
         this._queries = _.map(media, function (query) {
@@ -72,11 +130,18 @@ var Sidebar = React.createClass({
     },
 
     componentDidMount: function () {
-        this.panMap();
-    },
-
-    componentDidUpdate: function () {
-        this.panMap();
+        this.panMapIn();
+        var node = ReactDOM.findDOMNode(this);
+        var stop = L.DomEvent.stopPropagation;
+        var fakeStop = L.DomEvent._fakeStop || stop;
+        L.DomEvent
+            .on(node, 'contextmenu', stop)
+            .on(node, 'click', fakeStop)
+            .on(node, 'mousedown', stop)
+            .on(node, 'touchstart', stop)
+            .on(node, 'dblclick', fakeStop)
+            .on(node, 'mousewheel', stop)
+            .on(node, 'MozMousePixelScroll', stop);
     },
 
     getInitialState: function () {
@@ -89,26 +154,53 @@ var Sidebar = React.createClass({
         };
     },
 
+    componentDidUpdate: function () {
+        if (this.state.visible) {
+            this.panMapIn();
+        }
+    },
+
     componentWillUnmount: function (){
         _.each(this._queries, function (q) {
             q.removeListener(this.handleResize);
         }, this);
+        this.panMapOut();
     },
 
-    panMap: function () {
-        if (this.state.visible) {
-            var node = ReactDOM.findDOMNode(this);
-            var offset = node.offsetWidth;
-            this.props.map.panBy([-offset / 2, 0], {
-                duration: 0.5
-            });
-        } else {
-            //todo: GET WIDTH to set map back
+
+
+
+    panMapIn: function () {
+        var node = ReactDOM.findDOMNode(this);
+        if (!node) {
+            return;
         }
+        var offset = node.offsetWidth;
+        
+        this.props.map.panBy([-offset / 2, 0], {
+            duration: 0.5
+        });
+
+        var controls = document.getElementsByClassName('leaflet-left');
+        _.each(controls, function (control) {
+            control.style.marginLeft = node.offsetWidth + 'px';
+        });
+    },
+
+    panMapOut: function () {
+        var node = ReactDOM.findDOMNode(this);
+        var offset = node.offsetWidth;
+        this.props.map.panBy([offset / 2, 0], {
+            duration: 0.5
+        });
+        var controls = document.getElementsByClassName('leaflet-left');
+        _.each(controls, function (control) {
+            control.style.marginLeft = '0px';
+        });
     },
 
     close: function () {
-        this.setState({visible: false});
+        this.props.close();
     },
 
     handleResize: function (e) {
@@ -132,23 +224,20 @@ var Sidebar = React.createClass({
     },
 
     render: function () {
-        if (!this.state.visible) {
-            return null;
-        }
         return (
-            <div
-                className={'sidebar sidebar-' + this.state.size}>
-                <NativeListener
-                    onClick={this.click}
-                    onDoubleClick={this.stopPropagation}
-                    onMouseDown={this.stopPropagation}>
-                    <div
-                        onClick={this.close}
-                        className="sidebar-container">
-                        {this.props.children}
-                    </div>
-                </NativeListener>
-            </div>
+
+                <div
+                    key="sidebar"
+                    className={'sidebar sidebar-' + this.state.size}>
+                    
+                        <div
+                            onClick={this.close}
+                            className="sidebar-container">
+                            {this.props.children}
+                        </div>
+                    
+                </div>
+
         );
     }
 });
