@@ -2,7 +2,7 @@ body {
     margin: 0;
 }
 
-.sidebar {
+.leaflet-sidebar {
     position: absolute;
     height: 100%;
     -webkit-box-sizing: border-box;
@@ -12,26 +12,49 @@ body {
     z-index: 2000;
 }
 
-.sidebar-appear, .sidebar-enter {
+.leaflet-sidebar.leaflet-sidebar-right {
+    right: 0;
+}
+
+.leaflet-sidebar.leaflet-sidebar-left.sidebar-appear, .leaflet-sidebar.leaflet-sidebar-left.sidebar-enter {
     left: -500px;
 }
 
-.sidebar-enter.sidebar-enter-active, .sidebar-appear.sidebar-appear-active {
+.leaflet-sidebar.leaflet-sidebar-left.sidebar-enter.sidebar-enter-active, .leaflet-sidebar.leaflet-sidebar-left.sidebar-appear.sidebar-appear-active {
     left: 0;
     transition: left 0.5s, width 0.5s;
 }
 
-.sidebar-leave {
-  left: 0;
+.leaflet-sidebar.leaflet-sidebar-left.sidebar-leave {
+    left: 0;
 }
 
-.sidebar-leave.sidebar-leave-active {
-  left: -500px;
-  transition: left 0.5s, width 0.5s;
-
+.leaflet-sidebar.leaflet-sidebar-left.sidebar-leave.sidebar-leave-active {
+    left: -500px;
+    transition: left 0.5s, width 0.5s;
 }
 
-.sidebar > .sidebar-container {
+
+
+.leaflet-sidebar.leaflet-sidebar-right.sidebar-appear, .leaflet-sidebar.leaflet-sidebar-right.sidebar-enter {
+    right: -500px;
+}
+
+.leaflet-sidebar.leaflet-sidebar-right.sidebar-enter.sidebar-enter-active, .leaflet-sidebar.leaflet-sidebar-right.sidebar-appear.sidebar-appear-active {
+    right: 0;
+    transition: right 0.5s, width 0.5s;
+}
+
+.leaflet-sidebar.leaflet-sidebar-right.sidebar-leave {
+    right: 0;
+}
+
+.leaflet-sidebar.leaflet-sidebar-right.sidebar-leave.sidebar-leave-active {
+    right: -500px;
+    transition: right 0.5s, width 0.5s;
+}
+
+.leaflet-sidebar > .sidebar-container {
     height: 100%;
     width: 100%;
     overflow: auto;
@@ -48,26 +71,43 @@ body {
 }
 
 
-.sidebar.sidebar-large {
+.leaflet-sidebar.sidebar-large {
     width: 460px;
 }
 
-.sidebar.sidebar-medium {
+.leaflet-sidebar.sidebar-medium {
     width: 390px;
 }
 
-.sidebar.sidebar-small {
+.leaflet-sidebar.sidebar-small {
     width: 305px;
 }
 
-.sidebar.sidebar-fullscreen {
+.leaflet-sidebar.sidebar-fullscreen {
     width: 100%;
     padding: 0;
 }
 
-.sidebar.sidebar-fullscreen > .sidebar-container{
+.leaflet-sidebar.sidebar-fullscreen > .sidebar-container{
     border-radius: 0;
     box-shadow: none;
+}
+
+.leaflet-sidebar .close {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 31px;
+    height: 31px;
+    color: #333;
+    font-size: 25px;
+    line-height: 1em;
+    text-align: center;
+    background: white;
+    -webkit-border-radius: 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    z-index: 8;
 }
 
 
@@ -78,3 +118,5 @@ body {
 .leaflet-right {
   transition: margin-right 0.5s;
 }
+
+

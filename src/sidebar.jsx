@@ -24,7 +24,7 @@ function createMap(element) {
 var Map = React.createClass({
 
     getInitialState: function () {
-        return {position: null};
+        return {position: 1};
     },
 
     componentDidMount: function () {
@@ -43,22 +43,14 @@ var Map = React.createClass({
     },
 
     render: function () {
-        var info;
-        if (this.state.position) {
-            info = (
-                <Sidebar
-                    close={this.closeSidebar}
-                    map={this.map}>
-                        <h1>test</h1>
-                        <p>{this.state.position}</p>
-                    </Sidebar>
-            );
-        }
         return (
             <div className="map">
                 <Sidebar
+                    autoPan={true}
                     visible={!!this.state.position}
                     close={this.closeSidebar}
+                    position={'right'}
+                    initialTransition={true}
                     map={this.map}>
                     <h1>test</h1>
                     <p>{this.state.position}</p>
@@ -70,9 +62,10 @@ var Map = React.createClass({
 
 var Sidebar = React.createClass({
 
-        componentWillLeave: function (callback) {
-        console.log("leave?")
-        callback();
+    getDefaultProps: function () {
+        return {
+            initialTransition: false
+        };
     },
 
     render: function () {
@@ -81,8 +74,7 @@ var Sidebar = React.createClass({
             sidebar = (
                 <SidebarContent
                     key="sidebar"
-                    map={this.props.map}
-                    close={this.props.close}>
+                    {...this.props} >
                     {this.props.children}
                 </SidebarContent>
             );
@@ -90,7 +82,7 @@ var Sidebar = React.createClass({
         return (
             <ReactCSSTransitionGroup
                 transitionName="sidebar"
-                transitionAppear={true}
+                transitionAppear={this.props.initialTransition}
                 transitionAppearTimeout={500}
                 transitionEnterTimeout={500}
                 transitionLeaveTimeout={500}>
@@ -108,16 +100,15 @@ var media = {
     fullscreen: '(max-width: 768px)'
 };
 
-var SidebarContent2 = React.createClass({
-    render: function () {
-        return (
-            <div className="sidebar" onClick={this.props.close}>content</div>
-        );
-    }
-});
-
-
 var SidebarContent = React.createClass({
+
+    getDefaultProps: function () {
+        return {
+            autoPan: true,
+            closeButton: true,
+            position: 'left'
+        };
+    },
 
     componentWillMount: function () {
         this._queries = _.map(media, function (query) {
@@ -130,7 +121,8 @@ var SidebarContent = React.createClass({
     },
 
     componentDidMount: function () {
-        this.panMapIn();
+        console.log(this.props);
+        //stop propagation of events to map
         var node = ReactDOM.findDOMNode(this);
         var stop = L.DomEvent.stopPropagation;
         var fakeStop = L.DomEvent._fakeStop || stop;
@@ -142,6 +134,8 @@ var SidebarContent = React.createClass({
             .on(node, 'dblclick', fakeStop)
             .on(node, 'mousewheel', stop)
             .on(node, 'MozMousePixelScroll', stop);
+
+        this.panMapIn();
     },
 
     getInitialState: function () {
@@ -154,52 +148,54 @@ var SidebarContent = React.createClass({
         };
     },
 
-    componentDidUpdate: function () {
-        if (this.state.visible) {
-            this.panMapIn();
-        }
-    },
-
     componentWillUnmount: function (){
         _.each(this._queries, function (q) {
             q.removeListener(this.handleResize);
         }, this);
-        this.panMapOut();
     },
 
-
-
-
-    panMapIn: function () {
+    getOffset: function () {
         var node = ReactDOM.findDOMNode(this);
-        if (!node) {
-            return;
+        if (this.props.position === 'right') {
+            return -node.offsetWidth;
         }
-        var offset = node.offsetWidth;
-        
-        this.props.map.panBy([-offset / 2, 0], {
-            duration: 0.5
-        });
+        return node.offsetWidth;
+    },
 
-        var controls = document.getElementsByClassName('leaflet-left');
+    panMapIn: function (node) {
+
+        //pan the map to take the sidebar into account
+        if (this.props.autoPan && this.props.map) {
+            this.props.map.panBy([-this.getOffset() / 2, 0], {
+                duration: 0.5
+            });
+        }
+
+        var node = ReactDOM.findDOMNode(this);
+        //move the controls
+        var controls = document.getElementsByClassName('leaflet-' + this.props.position);
         _.each(controls, function (control) {
             control.style.marginLeft = node.offsetWidth + 'px';
         });
     },
 
     panMapOut: function () {
-        var node = ReactDOM.findDOMNode(this);
-        var offset = node.offsetWidth;
-        this.props.map.panBy([offset / 2, 0], {
-            duration: 0.5
-        });
-        var controls = document.getElementsByClassName('leaflet-left');
+        //pan the map back
+        if (this.props.autoPan && this.props.map) {
+            this.props.map.panBy([this.getOffset() / 2, 0], {
+                duration: 0.5
+            });
+        }
+
+        //move the controls back
+        var controls = document.getElementsByClassName('leaflet-' + this.props.position);
         _.each(controls, function (control) {
             control.style.marginLeft = '0px';
         });
     },
 
     close: function () {
+        this.panMapOut();
         this.props.close();
     },
 
@@ -224,20 +220,18 @@ var SidebarContent = React.createClass({
     },
 
     render: function () {
+        var closeBtn;
+        if (this.props.closeButton) {
+            closeBtn = (<a className="close" onClick={this.close}>&times;</a>);
+        }
         return (
-
-                <div
-                    key="sidebar"
-                    className={'sidebar sidebar-' + this.state.size}>
-                    
-                        <div
-                            onClick={this.close}
-                            className="sidebar-container">
-                            {this.props.children}
-                        </div>
-                    
+            <div key="sidebar"
+                 className={'leaflet-sidebar leaflet-sidebar-' + this.props.position + ' sidebar-' + this.state.size}>
+                <div className="sidebar-container">
+                    {closeBtn}
+                    {this.props.children}
                 </div>
-
+            </div>
         );
     }
 });
